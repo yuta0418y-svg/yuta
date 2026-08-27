@@ -100,6 +100,38 @@
   }
   #add-btn:hover{background:var(--pine-bright);}
 
+  .search-row{
+    position:relative;
+    margin-bottom:16px;
+  }
+  #search{
+    width:100%;
+    border:1px solid var(--paper-line);
+    background:#fff;
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-size:13px;
+    padding:9px 32px 9px 12px;
+    color:var(--ink);
+    outline:none;
+  }
+  #search:focus{border-color:var(--pine);}
+  #search::placeholder{color:#a7ad9d;}
+  #search-clear{
+    position:absolute;
+    right:8px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    color:#a7ad9d;
+    font-size:15px;
+    cursor:pointer;
+    display:none;
+    line-height:1;
+  }
+  #search-clear.show{display:block;}
+  #search-clear:hover{color:var(--danger);}
+
   .filters{
     display:flex;
     gap:16px;
@@ -233,6 +265,11 @@
       <button id="add-btn">追加</button>
     </div>
 
+    <div class="search-row">
+      <input id="search" type="text" placeholder="検索…" maxlength="120">
+      <button id="search-clear" title="クリア">×</button>
+    </div>
+
     <div class="filters">
       <button data-filter="all" class="active">すべて</button>
       <button data-filter="active">未完了</button>
@@ -252,11 +289,14 @@
   const STORAGE_KEY = 'todo-sheet-tasks';
   let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   let filter = 'all';
+  let query = '';
 
   const listEl = document.getElementById('list');
   const emptyEl = document.getElementById('empty-msg');
   const countEl = document.getElementById('count');
   const input = document.getElementById('new-task');
+  const searchInput = document.getElementById('search');
+  const searchClear = document.getElementById('search-clear');
 
   document.getElementById('today').textContent = new Date().toLocaleDateString('ja-JP', {
     year:'numeric', month:'2-digit', day:'2-digit', weekday:'short'
@@ -292,9 +332,11 @@
   }
 
   function render(){
+    const q = query.trim().toLowerCase();
     const filtered = tasks.filter(t => {
-      if(filter === 'active') return !t.done;
-      if(filter === 'done') return t.done;
+      if(filter === 'active' && t.done) return false;
+      if(filter === 'done' && !t.done) return false;
+      if(q && !t.text.toLowerCase().includes(q)) return false;
       return true;
     });
 
@@ -319,6 +361,9 @@
     });
 
     emptyEl.style.display = filtered.length ? 'none' : 'block';
+    emptyEl.textContent = q
+      ? `「${q}」に一致するものはありません。`
+      : 'まだ何もありません。上に書いてみましょう。';
     const remaining = tasks.filter(t => !t.done).length;
     countEl.textContent = `${remaining} 件 未完了 / 全 ${tasks.length} 件`;
   }
@@ -351,6 +396,19 @@
   });
 
   document.getElementById('clear-done').addEventListener('click', clearDone);
+
+  searchInput.addEventListener('input', () => {
+    query = searchInput.value;
+    searchClear.classList.toggle('show', query.length > 0);
+    render();
+  });
+  searchClear.addEventListener('click', () => {
+    query = '';
+    searchInput.value = '';
+    searchClear.classList.remove('show');
+    searchInput.focus();
+    render();
+  });
 
   render();
 </script>
